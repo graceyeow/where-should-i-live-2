@@ -25,10 +25,19 @@ export default async function handler(req: any, res: any) {
           Authorization: oneMapToken.startsWith('Bearer ') ? oneMapToken : `Bearer ${oneMapToken}`,
         };
 
-        const omResponse = await fetch(targetUrl, {
-          method: 'GET',
-          headers,
-        });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4500);
+
+        let omResponse: Response;
+        try {
+          omResponse = await fetch(targetUrl, {
+            method: 'GET',
+            headers,
+            signal: controller.signal,
+          });
+        } finally {
+          clearTimeout(timeoutId);
+        }
 
         if (omResponse.ok) {
           const data = await omResponse.json();

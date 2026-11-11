@@ -3,8 +3,8 @@ import { healthHandler } from './health';
 import { busArrivalHandler } from './bus-arrival';
 import { busStopsHandler } from './bus-stops';
 import { routeHandler } from './route';
-import feedHandler from './feed.js';
-import busHandler from './bus.js';
+import feedHandler from './feed';
+import busHandler from './bus';
 
 // 1. Express Router instance for local / server.ts dev server
 const apiRouter = Router();

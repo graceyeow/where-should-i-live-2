@@ -3,7 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { apiRouter } from './api/index';
-import feedHandler from './api/feed.js';
+import feedHandler from './api/feed';
 
 dotenv.config();
 
