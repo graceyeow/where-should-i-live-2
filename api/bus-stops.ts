@@ -45,13 +45,22 @@ export default async function handler(req: any, res: any) {
     if (accountKey.trim()) {
       try {
         const targetUrl = `https://datamall2.mytransport.sg/ltaodataservice/BusStops?$skip=${skip}`;
-        const ltaResponse = await fetch(targetUrl, {
-          method: 'GET',
-          headers: {
-            AccountKey: accountKey.trim(),
-            accept: 'application/json',
-          },
-        });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4500);
+
+        let ltaResponse: Response;
+        try {
+          ltaResponse = await fetch(targetUrl, {
+            method: 'GET',
+            headers: {
+              AccountKey: accountKey.trim(),
+              accept: 'application/json',
+            },
+            signal: controller.signal,
+          });
+        } finally {
+          clearTimeout(timeoutId);
+        }
 
         if (ltaResponse.ok) {
           const data = await ltaResponse.json();

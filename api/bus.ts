@@ -73,13 +73,22 @@ export async function fetchBusArrivals(busStopCode = '04121', serviceNo = '') {
       url += `&ServiceNo=${encodeURIComponent(serviceNo.trim())}`;
     }
 
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        AccountKey: accountKey,
-        accept: 'application/json',
-      },
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4500);
+
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          AccountKey: accountKey,
+          accept: 'application/json',
+        },
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!response.ok) {
       return {

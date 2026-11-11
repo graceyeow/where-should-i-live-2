@@ -46,7 +46,7 @@ export function getSimulatedBusServices(busStopCode = '04121') {
 }
 
 /**
- * Fetches live bus arrivals from LTA DataMall v3 API safely
+ * Fetches live bus arrivals from LTA DataMall v3 API safely with a 4.5s timeout
  */
 export async function fetchBusArrivals(busStopCode = '04121', serviceNo = '') {
   const accountKey = (process.env.LTA_DATAMALL_API_KEY || process.env.LTA_ACCOUNT_KEY || '').trim();
@@ -70,13 +70,22 @@ export async function fetchBusArrivals(busStopCode = '04121', serviceNo = '') {
       url += `&ServiceNo=${encodeURIComponent(serviceNo.trim())}`;
     }
 
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        AccountKey: accountKey,
-        accept: 'application/json',
-      },
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4500);
+
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          AccountKey: accountKey,
+          accept: 'application/json',
+        },
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!response.ok) {
       return {
@@ -407,24 +416,34 @@ export default async function handler(req: any, res: any) {
 }
 
 /**
- * Universal XML response sender matching sendJson pattern across all API routes
+ * Robust XML response sender that directly uses res.end() to avoid Vercel send() helper traps
  */
 function sendXml(res: any, status: number, xmlString: string) {
-  if (typeof res.status === 'function') {
-    res.status(status);
-  } else {
-    res.statusCode = status;
-  }
+  try {
+    if (res?.headersSent) {
+      try { res.end(); } catch {}
+      return;
+    }
 
-  if (typeof res.setHeader === 'function') {
-    res.setHeader('Content-Type', 'application/rss+xml; charset=utf-8');
-    res.setHeader('Cache-Control', 's-maxage=20, stale-while-revalidate=40');
-  }
+    if (typeof res?.status === 'function') {
+      res.status(status);
+    } else if (res) {
+      res.statusCode = status;
+    }
 
-  if (typeof res.send === 'function') {
-    return res.send(xmlString);
-  } else {
-    return res.end(xmlString);
+    if (typeof res?.setHeader === 'function') {
+      res.setHeader('Content-Type', 'application/rss+xml; charset=utf-8');
+      res.setHeader('Cache-Control', 's-maxage=20, stale-while-revalidate=40');
+    }
+
+    return res?.end(xmlString);
+  } catch (sendErr) {
+    console.error('[sendXml error]', sendErr);
+    try {
+      return res?.end(xmlString);
+    } catch {
+      // ignore
+    }
   }
 }
 
