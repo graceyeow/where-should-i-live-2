@@ -8,6 +8,7 @@ export default function handler(req: any, res: any) {
 
   const payload = {
     status: 'healthy',
+    deployVersion: 'v2.1-feed-check',
     timestamp: new Date().toISOString(),
     uptimeSeconds: Math.round((Date.now() - startTime) / 1000),
     service: 'Singapore HDB Affordability & Live Transport API',
