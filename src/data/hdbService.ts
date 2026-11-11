@@ -1,7 +1,6 @@
-import { AffordabilityInput, TownData, FlatType } from '../types/hdb';
+import type { AffordabilityInput, TownData, FlatType } from '../types/hdb';
 import { HDB_TOWNS_DATA } from './hdbResaleData';
 import { calculateAffordability, getAffordabilityStatus } from '../utils/affordabilityCalculator';
-import { formatSGD } from '../utils/transitRouter';
 
 /**
  * Default financial profile for Singapore HDB buyers

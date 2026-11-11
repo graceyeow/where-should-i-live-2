@@ -1,10 +1,9 @@
-import { fetchBusArrivals, getSimulatedBusServices, STOP_04121_SERVICES } from './bus.js';
-import { getDefaultHdbReading } from '../src/data/hdbService.ts';
+import { fetchBusArrivals, getSimulatedBusServices, STOP_04121_SERVICES } from './bus';
 
 /**
- * Escapes &, <, > and quotes for safe XML inclusion
+ * Escapes &, <, >, " and ' for safe XML inclusion
  */
-export function escapeXml(str) {
+export function escapeXml(str: any): string {
   if (str === null || str === undefined) return '';
   return String(str)
     .replace(/&/g, '&amp;')
@@ -54,41 +53,102 @@ export function getSingaporeTimeDetails(date = new Date()) {
 }
 
 /**
- * Builds the site address from request Host and protocol headers
- * Never fetches the site's own address from inside the function
+ * Builds the site address safely from request Host and protocol headers
  */
-export function getSiteAddress(req) {
-  const host =
-    req.headers?.['x-forwarded-host'] ||
-    req.headers?.host ||
-    process.env.APP_URL?.replace(/^https?:\/\//, '') ||
-    'localhost:3000';
+export function getSiteAddress(req: any): string {
+  try {
+    let host =
+      req?.headers?.['x-forwarded-host'] ||
+      req?.headers?.host ||
+      '';
 
-  const rawProto = req.headers?.['x-forwarded-proto'];
-  const proto = rawProto
-    ? String(rawProto).split(',')[0].trim()
-    : host.startsWith('localhost') || host.startsWith('127.0.0.1')
-    ? 'http'
-    : 'https';
+    // If comma-separated (proxies), take the first host
+    if (typeof host === 'string' && host.includes(',')) {
+      host = host.split(',')[0].trim();
+    }
 
-  return `${proto}://${host}`;
+    if (!host || host === 'localhost' || host.startsWith('localhost:')) {
+      if (!host) {
+        const appUrl = (process.env.APP_URL || '').trim();
+        if (appUrl && appUrl !== 'MY_APP_URL') {
+          host = appUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+        }
+      }
+    }
+
+    if (!host) {
+      host = 'localhost:3000';
+    }
+
+    const rawProto = req?.headers?.['x-forwarded-proto'];
+    const proto = rawProto
+      ? String(rawProto).split(',')[0].trim()
+      : host.startsWith('localhost') || host.startsWith('127.0.0.1')
+      ? 'http'
+      : 'https';
+
+    return `${proto}://${host}`;
+  } catch {
+    return 'http://localhost:3000';
+  }
+}
+
+/**
+ * Self-contained default HDB affordability reading (February 2026 / Data.gov.sg Collection 189)
+ * Grounded in S$8,500/mo income, S$60k cash, S$80k CPF OA, First-Timer Family near parents.
+ * Guarantees zero runtime failure from cross-module import paths in serverless environments.
+ */
+export function getDefaultHdbReading() {
+  return {
+    defaultBudget: 703000,
+    formattedBudget: 'S$703,000',
+    flatType: '4-Room',
+    dataMonth: '2026-02',
+    dataMonthLabel: 'February 2026',
+    dataSource: 'Data.gov.sg Collection 189',
+    topAffordableTowns: [
+      { id: 'woodlands', name: 'Woodlands', price: 495000, formattedPrice: 'S$495,000', month: '2026-02', monthLabel: 'February 2026', commuteMins: 40 },
+      { id: 'jurong-west', name: 'Jurong West', price: 505000, formattedPrice: 'S$505,000', month: '2026-02', monthLabel: 'February 2026', commuteMins: 32 },
+      { id: 'yishun', name: 'Yishun', price: 510000, formattedPrice: 'S$510,000', month: '2026-02', monthLabel: 'February 2026', commuteMins: 32 },
+    ],
+    affordableTowns: [
+      { id: 'woodlands', name: 'Woodlands', price: 495000, formattedPrice: 'S$495,000', month: '2026-02' },
+      { id: 'jurong-west', name: 'Jurong West', price: 505000, formattedPrice: 'S$505,000', month: '2026-02' },
+      { id: 'yishun', name: 'Yishun', price: 510000, formattedPrice: 'S$510,000', month: '2026-02' },
+      { id: 'choa-chu-kang', name: 'Choa Chu Kang', price: 510000, formattedPrice: 'S$510,000', month: '2026-02' },
+      { id: 'sembawang', name: 'Sembawang', price: 515000, formattedPrice: 'S$515,000', month: '2026-02' },
+      { id: 'bukit-panjang', name: 'Bukit Panjang', price: 520000, formattedPrice: 'S$520,000', month: '2026-02' },
+      { id: 'bukit-batok', name: 'Bukit Batok', price: 535000, formattedPrice: 'S$535,000', month: '2026-02' },
+      { id: 'bedok', name: 'Bedok', price: 560000, formattedPrice: 'S$560,000', month: '2026-02' },
+      { id: 'hougang', name: 'Hougang', price: 565000, formattedPrice: 'S$565,000', month: '2026-02' },
+      { id: 'jurong-east', name: 'Jurong East', price: 580000, formattedPrice: 'S$580,000', month: '2026-02' },
+      { id: 'pasir-ris', name: 'Pasir Ris', price: 580000, formattedPrice: 'S$580,000', month: '2026-02' },
+      { id: 'sengkang', name: 'Sengkang', price: 585000, formattedPrice: 'S$585,000', month: '2026-02' },
+      { id: 'tampines', name: 'Tampines', price: 595000, formattedPrice: 'S$595,000', month: '2026-02' },
+      { id: 'punggol', name: 'Punggol', price: 610000, formattedPrice: 'S$610,000', month: '2026-02' },
+      { id: 'ang-mo-kio', name: 'Ang Mo Kio', price: 628000, formattedPrice: 'S$628,000', month: '2026-02' },
+      { id: 'marine-parade', name: 'Marine Parade', price: 640000, formattedPrice: 'S$640,000', month: '2026-02' },
+      { id: 'serangoon', name: 'Serangoon', price: 650000, formattedPrice: 'S$650,000', month: '2026-02' },
+    ],
+  };
 }
 
 /**
  * Serverless & Express handler for GET /api/feed
  * Produces an RSS 2.0 feed of the app's own live reading for Zapier
  */
-export default async function feedHandler(req, res) {
+export default async function feedHandler(req: any, res: any) {
   try {
     const timeDetails = getSingaporeTimeDetails();
     const siteUrl = getSiteAddress(req);
 
-    // 1. Fetch HDB affordability data from shared module
-    let hdbReading;
-    let hdbCheckFailed = null;
+    // 1. Fetch HDB affordability data
+    let hdbReading: any;
+    let hdbCheckFailed: { source: string; statusCode: number } | null = null;
     try {
       hdbReading = getDefaultHdbReading();
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[Feed HDB Error]', err);
       hdbCheckFailed = {
         source: 'Data.gov.sg Collection 189',
         statusCode: 500,
@@ -96,29 +156,46 @@ export default async function feedHandler(req, res) {
     }
 
     // 2. Fetch Bus Arrival data from LTA DataMall v3 stop 04121
-    const busResult = await fetchBusArrivals('04121');
+    let busResult: any;
+    try {
+      busResult = await fetchBusArrivals('04121');
+    } catch (busErr: any) {
+      console.error('[Feed Bus Error]', busErr);
+      busResult = {
+        success: false,
+        source: 'LTA DataMall',
+        statusCode: 503,
+        fallbackServices: getSimulatedBusServices('04121'),
+      };
+    }
 
     // Check for source failure or missing API key
     let sourceCheckFailed = hdbCheckFailed;
-    if (!sourceCheckFailed && !busResult.success) {
-      // Missing API key or LTA HTTP error
+    if (!sourceCheckFailed && !busResult?.success) {
       sourceCheckFailed = {
-        source: busResult.source || 'LTA DataMall',
-        statusCode: busResult.statusCode || 401,
+        source: busResult?.source || 'LTA DataMall',
+        statusCode: busResult?.statusCode || 401,
       };
     }
 
     // Check if simulation preview is explicitly requested via query parameter
-    const urlObj = new URL(req.url || '', siteUrl);
-    const forceSimulate =
-      urlObj.searchParams.get('simulate') === 'true' ||
-      urlObj.searchParams.get('mock') === 'true';
+    let forceSimulate = false;
+    try {
+      const rawUrl = req?.url || '';
+      const queryIndex = rawUrl.indexOf('?');
+      if (queryIndex !== -1) {
+        const searchParams = new URLSearchParams(rawUrl.slice(queryIndex));
+        forceSimulate = searchParams.get('simulate') === 'true' || searchParams.get('mock') === 'true';
+      }
+    } catch {
+      forceSimulate = false;
+    }
 
     // Services data to display
     const services =
-      busResult.isLive && Array.isArray(busResult.services) && busResult.services.length > 0
+      busResult?.isLive && Array.isArray(busResult?.services) && busResult.services.length > 0
         ? busResult.services
-        : busResult.fallbackServices || getSimulatedBusServices('04121');
+        : busResult?.fallbackServices || getSimulatedBusServices('04121');
 
     // Earliest arriving bus at stop 04121
     const sortedServices = [...services].sort((a, b) => (a.nextBusMins ?? 999) - (b.nextBusMins ?? 999));
@@ -131,9 +208,8 @@ export default async function feedHandler(req, res) {
       itemTitle = `Check failed: ${sourceCheckFailed.source} ${sourceCheckFailed.statusCode}`;
     } else {
       // Requirement 3: "S$650,000 buys Woodlands, Jurong West, Yishun; bus 7 in 4 min"
-      const topTownsStr = hdbReading?.topAffordableTowns
-        ?.map((t) => t.name)
-        .join(', ') || 'Woodlands, Jurong West, Yishun';
+      const topTownsStr =
+        hdbReading?.topAffordableTowns?.map((t: any) => t.name).join(', ') || 'Woodlands, Jurong West, Yishun';
 
       const budgetStr = hdbReading?.formattedBudget || 'S$703,000';
       itemTitle = `${budgetStr} buys ${topTownsStr}; bus ${earliestBus.serviceNo} in ${earliestBus.nextBusMins} min`;
@@ -144,12 +220,12 @@ export default async function feedHandler(req, res) {
 
     const townsSectionHeader = `\nHDB Resale Prices (${hdbReading?.dataSource || 'Data.gov.sg Collection 189'} - Month: ${hdbReading?.dataMonth || '2026-02'}):`;
     const townsLines = (hdbReading?.affordableTowns || [])
-      .map((t) => `- ${t.name}: ${t.formattedPrice} (Month: ${t.month})`)
+      .map((t: any) => `- ${t.name}: ${t.formattedPrice || formatSgd(t.price)} (Month: ${t.month || '2026-02'})`)
       .join('\n');
 
     const busSectionHeader = `\nBus Stop 04121 (SMU - Bras Basah Rd) next 2 arrivals per service:`;
     const busLines = services
-      .map((s) => {
+      .map((s: any) => {
         const next1Str = s.nextBusMins !== null && s.nextBusMins !== 999 ? `${s.nextBusMins} min` : 'N/A';
         const next2Str = s.nextBus2Mins !== null && s.nextBus2Mins !== undefined ? `${s.nextBus2Mins} min` : 'N/A';
         return `- Bus ${s.serviceNo}: Next in ${next1Str}, 2nd in ${next2Str}`;
@@ -193,8 +269,8 @@ export default async function feedHandler(req, res) {
     } else {
       return res.end(rssXml);
     }
-  } catch (err) {
-    // If unexpected internal error occurs, still answer 200 with valid RSS
+  } catch (err: any) {
+    console.error('[Feed Handler Critical Catch]', err);
     const fallbackTime = getSingaporeTimeDetails();
     const siteUrl = getSiteAddress(req);
     const errorXml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -215,10 +291,16 @@ export default async function feedHandler(req, res) {
 </rss>`;
 
     res.statusCode = 200;
-    if (typeof res.setHeader === 'function') {
+    if (typeof res.setHeader === 'function' && !res.headersSent) {
       res.setHeader('Content-Type', 'application/rss+xml; charset=utf-8');
       res.setHeader('Cache-Control', 's-maxage=20, stale-while-revalidate=40');
     }
     return res.end(errorXml);
   }
 }
+
+function formatSgd(amount: number): string {
+  return `S$${Math.round(amount || 0).toLocaleString('en-SG')}`;
+}
+
+export { feedHandler };

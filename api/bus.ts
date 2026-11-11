@@ -10,7 +10,7 @@ export const STOP_04121_SERVICES = [
 /**
  * Calculates arrival minutes relative to now from an ISO timestamp
  */
-export function calcArrivalMins(isoString, now = Date.now()) {
+export function calcArrivalMins(isoString: string | null | undefined, now = Date.now()): number | null {
   if (!isoString) return null;
   const targetTime = new Date(isoString).getTime();
   if (isNaN(targetTime)) return null;
@@ -91,11 +91,11 @@ export async function fetchBusArrivals(busStopCode = '04121', serviceNo = '') {
       };
     }
 
-    const data = await response.json();
+    const data: any = await response.json();
     const rawServices = Array.isArray(data.Services) ? data.Services : [];
     const now = Date.now();
 
-    const simplifiedServices = rawServices.map((svc) => {
+    const simplifiedServices = rawServices.map((svc: any) => {
       const nextBusMins = calcArrivalMins(svc.NextBus?.EstimatedArrival, now);
       const nextBus2Mins = calcArrivalMins(svc.NextBus2?.EstimatedArrival, now);
 
@@ -120,7 +120,7 @@ export async function fetchBusArrivals(busStopCode = '04121', serviceNo = '') {
       services: simplifiedServices,
       raw: data,
     };
-  } catch (err) {
+  } catch (err: any) {
     return {
       success: false,
       source: 'LTA DataMall',
@@ -134,7 +134,7 @@ export async function fetchBusArrivals(busStopCode = '04121', serviceNo = '') {
 /**
  * Serverless / Express HTTP Handler for GET /api/bus and GET /api/bus-arrival
  */
-export default async function handler(req, res) {
+export default async function handler(req: any, res: any) {
   try {
     const url = new URL(req.url || '', `http://${req.headers?.host || 'localhost'}`);
     const busStopCode =
@@ -179,7 +179,7 @@ export default async function handler(req, res) {
       };
       return sendJson(res, 200, fallbackPayload);
     }
-  } catch (err) {
+  } catch (err: any) {
     return sendJson(res, 500, {
       error: 'Failed to process bus arrival request',
       message: err?.message || 'Unknown error',
@@ -187,7 +187,7 @@ export default async function handler(req, res) {
   }
 }
 
-function sendJson(res, status, data) {
+function sendJson(res: any, status: number, data: any) {
   if (typeof res.json === 'function') {
     return res.status(status).json(data);
   } else {
@@ -196,3 +196,5 @@ function sendJson(res, status, data) {
     return res.end(JSON.stringify(data));
   }
 }
+
+export { handler as busHandler };
